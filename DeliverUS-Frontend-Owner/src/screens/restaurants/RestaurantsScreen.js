@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { StyleSheet, FlatList, Pressable, View } from 'react-native'
 
-import { getAll, remove } from '../../api/RestaurantEndpoints'
+import { getAll, remove, alterStatus } from '../../api/RestaurantEndpoints'
 import ImageCard from '../../components/ImageCard'
 import TextSemiBold from '../../components/TextSemibold'
 import TextRegular from '../../components/TextRegular'
@@ -12,10 +12,12 @@ import { AuthorizationContext } from '../../context/AuthorizationContext'
 import { showMessage } from 'react-native-flash-message'
 import DeleteModal from '../../components/DeleteModal'
 import restaurantLogo from '../../../assets/restaurantLogo.jpeg'
+import AlterStatusModal from '../../components/AlterStatusModal'
 
 export default function RestaurantsScreen ({ navigation, route }) {
   const [restaurants, setRestaurants] = useState([])
   const [restaurantToBeDeleted, setRestaurantToBeDeleted] = useState(null)
+  const [restaurantToBeChangedItsSatus, setRestaurantToBeChangedItsSatus] = useState(null)
   const { loggedInUser } = useContext(AuthorizationContext)
 
   useEffect(() => {
@@ -77,6 +79,26 @@ export default function RestaurantsScreen ({ navigation, route }) {
             </TextRegular>
           </View>
         </Pressable>
+        {/* SOLUCION */}
+        {(item.status === 'online' || item.status === 'offline') &&
+        <Pressable
+            onPress={() => { setRestaurantToBeChangedItsSatus(item) }}
+            style={({ pressed }) => [
+              {
+                backgroundColor: pressed
+                  ? GlobalStyles.brandGreenTap
+                  : GlobalStyles.brandGreen
+              },
+              styles.actionButton
+            ]}>
+          <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name='clock' color={'white'} size={20}/>
+            <TextRegular textStyle={styles.text}>
+              {item.status}
+            </TextRegular>
+          </View>
+        </Pressable>}
+        {/* SOLUCION */}
         </View>
       </ImageCard>
     )
@@ -153,6 +175,30 @@ export default function RestaurantsScreen ({ navigation, route }) {
     }
   }
 
+  // SOLUCION
+  const changeStatus = async (restaurant) => {
+    try {
+      await alterStatus(restaurant.id)
+      await fetchRestaurants()
+      setRestaurantToBeChangedItsSatus(null)
+      showMessage({
+        message: `Restaurant ${restaurant.name} succesfully cghanged its status`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    } catch (error) {
+      console.log(error)
+      setRestaurantToBeChangedItsSatus(null)
+      showMessage({
+        message: `Restaurant ${restaurant.name} could not be changed its status.`,
+        type: 'error',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    }
+  }
+
   return (
     <>
     <FlatList
@@ -170,6 +216,14 @@ export default function RestaurantsScreen ({ navigation, route }) {
         <TextRegular>The products of this restaurant will be deleted as well</TextRegular>
         <TextRegular>If the restaurant has orders, it cannot be deleted.</TextRegular>
     </DeleteModal>
+    {/* SOLUCION */}
+    <AlterStatusModal
+      isVisible={restaurantToBeChangedItsSatus !== null}
+      onCancel={() => setRestaurantToBeChangedItsSatus(null)}
+      onConfirm={() => changeStatus(restaurantToBeChangedItsSatus)}>
+        <TextRegular>The status of the restauarant its about to change</TextRegular>
+    </AlterStatusModal>
+    {/* SOLUCION */}
     </>
   )
 }
@@ -201,7 +255,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     bottom: 5,
     position: 'absolute',
-    width: '90%'
+    width: '63%',
+    alignSelf: 'start'
   },
   text: {
     fontSize: 16,

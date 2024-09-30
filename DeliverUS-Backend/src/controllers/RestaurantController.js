@@ -1,4 +1,4 @@
-import { Restaurant, Product, RestaurantCategory, ProductCategory } from '../models/models.js'
+import { Restaurant, Product, RestaurantCategory, ProductCategory, sequelizeSession } from '../models/models.js'
 
 const index = async function (req, res) {
   try {
@@ -10,7 +10,8 @@ const index = async function (req, res) {
         model: RestaurantCategory,
         as: 'restaurantCategory'
       },
-        order: [[{ model: RestaurantCategory, as: 'restaurantCategory' }, 'name', 'ASC']]
+        // SOLUCION
+        order: [['status', 'ASC'], [{ model: RestaurantCategory, as: 'restaurantCategory' }, 'name', 'ASC']]
       }
     )
     res.json(restaurants)
@@ -28,7 +29,9 @@ const indexOwner = async function (req, res) {
         include: [{
           model: RestaurantCategory,
           as: 'restaurantCategory'
-        }]
+        }],
+        // SOLUCION
+        order: [['status', 'ASC'], [{ model: RestaurantCategory, as: 'restaurantCategory' }, 'name', 'ASC']]
       })
     res.json(restaurants)
   } catch (err) {
@@ -95,12 +98,38 @@ const destroy = async function (req, res) {
   }
 }
 
+// SOLUCIÓN
+
+const alterStatus = async function (req, res) {
+  const t = await sequelizeSession.transaction()
+  try {
+    // Buscamos el restaurante que vamos a actulizar con la petición
+    const RestaurantToUpdate = await Restaurant.findByPk(req.params.restaurantId)
+    // si su estado es offline cambia a online, en otro caso a offline
+    if (RestaurantToUpdate.status === 'online') {
+      RestaurantToUpdate.status = 'offline'
+    } else {
+      RestaurantToUpdate.status = 'online'
+    }
+    // guardamos la nueva informacion del restaurante en la BD
+    await RestaurantToUpdate.save({ transaction: t })
+
+    await t.commit()
+    // const updatedRestaurant = await Restaurant.findByPk(req.params.restaurantId)
+    res.json(RestaurantToUpdate)
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}
+
 const RestaurantController = {
   index,
   indexOwner,
   create,
   show,
   update,
-  destroy
+  destroy,
+  // SOLUCIÓN
+  alterStatus
 }
 export default RestaurantController
