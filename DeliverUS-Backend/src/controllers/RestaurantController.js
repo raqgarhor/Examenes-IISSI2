@@ -1,15 +1,31 @@
-import { Restaurant, Product, RestaurantCategory, ProductCategory } from '../models/models.js'
+import { Restaurant, Product, RestaurantCategory, ProductCategory, Performance } from '../models/models.js'
+import { Op } from 'sequelize'
 
 const index = async function (req, res) {
   try {
+    const today = new Date(Date.now())
+    today.setHours(0, 0, 0, 0)
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    nextWeek.setHours(0, 0, 0, 0)
     const restaurants = await Restaurant.findAll(
       {
         attributes: { exclude: ['userId'] },
-        include:
-      {
-        model: RestaurantCategory,
-        as: 'restaurantCategory'
-      },
+        include: [
+          {
+            model: RestaurantCategory,
+            as: 'restaurantCategory'
+          }, {
+            model: Performance,
+            as: 'performances',
+            where: {
+              appointment:
+            {
+              [Op.and]: [{ [Op.gte]: today }, { [Op.lt]: nextWeek }]
+            }
+            },
+            required: false
+          }],
+
         order: [[{ model: RestaurantCategory, as: 'restaurantCategory' }, 'name', 'ASC']]
       }
     )
@@ -21,6 +37,10 @@ const index = async function (req, res) {
 
 const indexOwner = async function (req, res) {
   try {
+    const today = new Date(Date.now())
+    today.setHours(0, 0, 0, 0)
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    nextWeek.setHours(0, 0, 0, 0)
     const restaurants = await Restaurant.findAll(
       {
         attributes: { exclude: ['userId'] },
@@ -28,6 +48,17 @@ const indexOwner = async function (req, res) {
         include: [{
           model: RestaurantCategory,
           as: 'restaurantCategory'
+        }, {
+
+          model: Performance,
+          as: 'performances',
+          where: {
+            appointment:
+          {
+            [Op.and]: [{ [Op.gte]: today }, { [Op.lt]: nextWeek }]
+          }
+          },
+          required: false
         }]
       })
     res.json(restaurants)
@@ -50,6 +81,11 @@ const create = async function (req, res) {
 const show = async function (req, res) {
   // Only returns PUBLIC information of restaurants
   try {
+    const today = new Date(Date.now())
+    today.setHours(0, 0, 0, 0)
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    nextWeek.setHours(0, 0, 0, 0)
+
     const restaurant = await Restaurant.findByPk(req.params.restaurantId, {
       attributes: { exclude: ['userId'] },
       include: [{
@@ -60,8 +96,22 @@ const show = async function (req, res) {
       {
         model: RestaurantCategory,
         as: 'restaurantCategory'
+      },
+      // Solution
+      {
+        model: Performance,
+        as: 'performances',
+        where: {
+          appointment:
+             {
+               [Op.and]: [{ [Op.gte]: today },
+                 { [Op.lt]: nextWeek }]
+             }
+        },
+        required: false
       }],
-      order: [[{ model: Product, as: 'products' }, 'order', 'ASC']]
+      order: [[{ model: Product, as: 'products' }, 'order', 'ASC'],
+        [{ model: Performance, as: 'performances' }, 'appointment', 'ASC']]
     }
     )
     res.json(restaurant)
