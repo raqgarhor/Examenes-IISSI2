@@ -19,6 +19,7 @@ const create = [
   check('name').custom(checkCategoryExists),
   // El tamaño máximo para los nombres de las categorías de restaurante será de 50 caracteres
   // SOLUCION
-  check('name').exists().isString().isLength({ min: 1, max: 50 }).trim()]
+  check('name').exists().isString().isLength({ min: 1, max: 50 }).trim()
+]
 
 export { create }
