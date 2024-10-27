@@ -1,4 +1,4 @@
-import { Product, Order, Restaurant, RestaurantCategory, ProductCategory } from '../models/models.js'
+import { Product, Order, Restaurant, RestaurantCategory, ProductCategory, sequelizeSession } from '../models/models.js'
 import Sequelize from 'sequelize'
 
 const indexRestaurant = async function (req, res) {
@@ -107,12 +107,66 @@ const popular = async function (req, res) {
   }
 }
 
+// SOLUCION
+
+const promote = async function (req, res) {
+  const t = await sequelizeSession.transaction()
+  try {
+    // Producto al que le hacemos la peticion para promocionarse
+    const productoAPromocionar = await Product.findByPk(req.params.productId)
+
+    // Buscamos si existe una yo promocionado
+    const productoYaPromocionado = await Product.findOne({ where: { restaurantId: req.body.restaurantId, promoted: true } })
+
+    // si ya existe uno promocionado, lo desmpromocionamos
+    if (productoYaPromocionado) {
+      await Product.update(
+        { promoted: false },
+        { where: { id: productoYaPromocionado.id } },
+        { transaction: t }
+      )
+    }
+    // Promocionamos el nuevo producto
+    await Product.update(
+      { promoted: true },
+      { where: { id: productoAPromocionar.id } },
+      { transaction: t }
+    )
+
+    await t.commit()
+    const promotedProduct = await Product.findByPk(req.params.productId)
+    res.json(promotedProduct)
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}
+
+/*
+SOLUCIÓN SIN TRANSACCIÓN
+const promote = async function (req, res) {
+  try {
+    const product = await Product.findByPk(req.params.productId)
+    const productToBeDemoted = await Product.findOne({ where: { restaurantId: product.restaurantId, promoted: true } })
+    if (productToBeDemoted) {
+      productToBeDemoted.promoted = false
+      await productToBeDemoted.save()
+    }
+    product.promoted = true
+    const promotedProduct = await product.save()
+    res.json(promotedProduct)
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}
+*/
+
 const ProductController = {
   indexRestaurant,
   show,
   create,
   update,
   destroy,
-  popular
+  popular,
+  promote
 }
 export default ProductController

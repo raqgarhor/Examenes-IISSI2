@@ -1,5 +1,5 @@
 import { check } from 'express-validator'
-import { Restaurant } from '../../models/models.js'
+import { Restaurant, Product } from '../../models/models.js'
 import { checkFileIsImage, checkFileMaxSize } from './FileValidationHelper.js'
 
 const maxFileSize = 2000000 // around 2Mb
@@ -14,6 +14,22 @@ const checkRestaurantExists = async (value, { req }) => {
     return Promise.reject(new Error(err))
   }
 }
+// SOLUCION: por cada restaurante que tenga el dueño, solo puede promocionar UN producto:
+const checkOnlyOnePromotedProduct = async (value, { req }) => {
+  try {
+    const productPromoted = await Product.count(
+      { where: { restaurantId: req.body.restaurantId, promoted: true } }
+    )
+    if (productPromoted !== 0) {
+      return Promise.reject(new Error('Only one product can bv promoted, please despromote the already promoted product'))
+    } else {
+      return Promise.resolve('OK')
+    }
+  } catch (err) {
+    return Promise.reject(new Error(err))
+  }
+}
+
 const create = [
   check('name').exists().isString().isLength({ min: 1, max: 255 }).trim(),
   check('description').optional({ checkNull: true, checkFalsy: true }).isString().isLength({ min: 1 }).trim(),
@@ -28,7 +44,9 @@ const create = [
   }).withMessage('Please upload an image with format (jpeg, png).'),
   check('image').custom((value, { req }) => {
     return checkFileMaxSize(req, 'image', maxFileSize)
-  }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB')
+  }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB'),
+  /// SOLUCION
+  check('promoted').custom(checkOnlyOnePromotedProduct)
 ]
 
 const update = [
@@ -45,7 +63,8 @@ const update = [
   check('image').custom((value, { req }) => {
     return checkFileMaxSize(req, 'image', maxFileSize)
   }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB'),
-  check('restaurantId').not().exists()
+  check('restaurantId').not().exists(),
+  check('promoted').custom(checkOnlyOnePromotedProduct)
 ]
 
 export { create, update }
