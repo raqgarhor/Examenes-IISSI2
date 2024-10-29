@@ -86,6 +86,10 @@ module.exports = {
           },
           key: 'id'
         }
+      },
+      percentage: {
+        type: Sequelize.DOUBLE,
+        defaultValue: 0.0
       }
     })
   },

@@ -45,7 +45,8 @@ const update = [
   check('image').custom((value, { req }) => {
     return checkFileMaxSize(req, 'image', maxFileSize)
   }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB'),
-  check('restaurantId').not().exists()
+  check('restaurantId').not().exists(),
+  check('percentage').exists().isFloat({ min: -5, max: 5 }).toFloat()
 ]
 
 export { create, update }
