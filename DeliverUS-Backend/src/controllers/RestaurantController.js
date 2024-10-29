@@ -31,6 +31,7 @@ const indexOwner = async function (req, res) {
     res.status(500).send(err)
   }
 }
+// sol
 
 async function getPinnedRestaurants (req) {
   return await Restaurant.findAll(
