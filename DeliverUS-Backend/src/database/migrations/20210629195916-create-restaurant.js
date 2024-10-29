@@ -86,6 +86,12 @@ module.exports = {
           },
           key: 'id'
         }
+      },
+      // SOLUCION
+      pinnedAt: {
+        allowNull: true,
+        type: Sequelize.DATE
+
       }
     })
   },
